@@ -4,26 +4,23 @@ import cv2
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from typing import List
 
-
 from inviol_image_analyser_assignment.services.detection.roboflow_vest import RoboflowVestBackend
 from inviol_image_analyser_assignment.services.detection.yolo import YOLOv8Backend
 from inviol_image_analyser_assignment.services.rules.ppe_vest import VestRule
 from inviol_image_analyser_assignment.services.rules.restricted import RestrictedRule
 from inviol_image_analyser_assignment.core.config import CFG
+from inviol_image_analyser_assignment.services.rules.ppe_vest_color import VestColorRule
 from inviol_image_analyser_assignment.models import (
     AnalysisResult, AnalysisMeta, RiskScore, Detection, RuleBreach
 )
 
-app = FastAPI(title="Image Analyser Assignment - by raffaele ciaox9", version="0.1.0")
+app = FastAPI(title="Image Analyser Assignment - by raffaele ciao9", version="0.1.0")
 
 # ---- Detection backend singleton (lazy-loaded) ----
 _detector = YOLOv8Backend(model_name="yolov8n.pt", conf=0.25, imgsz=640)
-_rules = [VestRule(), RestrictedRule()]
-_ppe = RoboflowVestBackend(
-    model_id="aa-sutfb/vest-qf3av",
-    version="1",
-    conf=0.25,
-)
+_rules = [VestColorRule(coverage_threshold=0.1), RestrictedRule()]
+_ppe = RoboflowVestBackend(model_id="vests-287rc/1")
+
 
 @app.get("/healthcheck")
 async def get_healthcheck():
