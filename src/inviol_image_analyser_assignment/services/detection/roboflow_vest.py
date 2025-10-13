@@ -15,7 +15,7 @@ class RoboflowVestBackend(DetectionBackend):
     """
 
     def __init__(self, model_id: str, version: int | str = "1", conf: float = 0.25,
-                 api_key_env: str = "Wm6MqUx2QGFVhwP0DeEo"):
+                 api_key_env: str = "ROBOFLOW_API_KEY"):
         # model_id examples:
         #   "vest-qf3av"                       (model in your default workspace)
         #   "aa-sutfb/vest-qf3av"              (explicit workspace/model)
