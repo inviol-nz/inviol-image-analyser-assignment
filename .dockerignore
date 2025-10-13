@@ -1,0 +1,15 @@
+.git
+.gitignore
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.swp
+*.swo
+.venv/
+.env
+.DS_Store
+.idea/
+.vscode/
+sample_images/      # optional if you don’t need these in the image
+assets/models/*     # optional if you’ll mount models at runtime
