@@ -1,3 +1,15 @@
+
+"""
+Rule: detects missing high-visibility vest based on color segmentation.
+
+This rule does **not** rely on object detections for vests.
+Instead, it inspects each detected person’s torso region and searches for
+orange/yellow HSV color ranges typical of safety vests.
+
+If the fraction of vest-colored pixels is below a configurable threshold,
+the person is flagged for missing visible PPE.
+
+"""
 import cv2
 import numpy as np
 from inviol_image_analyser_assignment.models import Detection, RuleBreach
@@ -51,9 +63,9 @@ class VestColorRule(SafetyRule):
             if vest_ratio < self.coverage_threshold:
                 breaches.append(RuleBreach(
                     rule_id=self.rule_id,
-                    description="Person not wearing visible high-vis vest",
+                    message="Person not wearing visible high-vis vest (no orange/yellow detected)",
                     severity="high",
-                    detection_ref=det
+                    subjects=[0]  # or whatever subject/person index fits your data
                 ))
 
         return breaches

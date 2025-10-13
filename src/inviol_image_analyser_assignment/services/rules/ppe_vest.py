@@ -1,3 +1,14 @@
+"""
+Rule: checks that each detected person has a corresponding vest detection.
+
+This rule operates purely on *geometric overlap* between detections.
+It assumes an upstream model (e.g., RoboflowVestBackend) produces explicit
+`"vest"` detections in addition to `"person"` detections.
+
+For each detected person, it computes an approximate *torso region*
+and tests whether any vest overlaps that region sufficiently.
+If not, it records a high-severity `RuleBreach`.
+"""
 from __future__ import annotations
 from typing import List
 from inviol_image_analyser_assignment.models import Detection, RuleBreach, BoundingBox
