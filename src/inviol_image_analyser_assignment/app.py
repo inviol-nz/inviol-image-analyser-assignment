@@ -14,7 +14,7 @@ from inviol_image_analyser_assignment.models import (
     AnalysisResult, AnalysisMeta, RiskScore, Detection, RuleBreach
 )
 
-app = FastAPI(title="Image Analyser Assignment - by raffaele ciao", version="0.1.0")
+app = FastAPI(title="Image Analyser Assignment - by raffaele ciaox9", version="0.1.0")
 
 # ---- Detection backend singleton (lazy-loaded) ----
 _detector = YOLOv8Backend(model_name="yolov8n.pt", conf=0.25, imgsz=640)
