@@ -1,0 +1,79 @@
+
+******************************************************************************
+Modular codebase, with separate layers for:
+services/detection/ object-detection backends (YOLOv8, traditional CV and traces
+                    of Roboflow API)
+services/rules/     rule-based safety logic.
+core/config/        tunable configuration parameters.
+models/             Pydantic schemas for standardized API responses.
+******************************************************************************
+Detection
+Mainly YOLOv8 for people and vehicles: fast, lightweight. I tested Roboflow to
+detect vests but for time constraints. I didn't get to fix some bugs. The design
+was adjusted so that vest presence can instead be inferred directly from pixel color.
+******************************************************************************
+Two alternative PPE rules were implemented:
+1)VestRule – checks that a detected vest overlaps a person’s torso (geometry-based).
+2)VestColorRule – verifies the presence of orange/yellow pixels in the torso region.
+This rule remains active now that the Roboflow backend has been disabled.
+An additional RestrictedAreaRule was included but not fully developed.
+******************************************************************************
+Risk scoring
+Each breach contributes a weighted value to an overall risk score (0–10),
+defined in config.py for easy tuning.
+******************************************************************************
+Configurability
+All thresholds (HSV bounds, torso fractions, IoU coverage, etc.) can be overridden
+through environment variables for experimentation or deployment flexibility.
+******************************************************************************
+What worked well
+YOLOv8 integration is fast, stable, and portable even inside Docker.
+Color segmentation reliably detects bright orange/yellow vests under
+typical lighting. (needs more tests)
+Codebase separation (FastAPI + services + models) produced clean maintainability
+and clear evaluation paths.
+******************************************************************************
+What did not work well
+The Roboflow model endpoint frequently returned different not-well
+documented errors, and of course the alternative of color-based rules is sensitive
+to shadows or non-standard vest colors.
+******************************************************************************
+Additional Dependencies and Reasons
+Dependency          Purpose
+ultralytics	        Provides the YOLOv8 object-detection model and inference pipeline.
+opencv-python 	    Plenty of cv essentials
+numpy	            Numerical operations for masks
+Pillow (PIL)	    Reading/writing images and resizing
+requests	        used to call Roboflow API; still kept for completeness.
+fastapi / pydantic	Web API framework
+******************************************************************************
+Run the service locally:
+uv run uvicorn inviol_image_analyser_assignment.app:app --reload --host 0.0.0.0 --port 8000
+
+Health Check
+curl -X GET http://localhost:8000/healthcheck
+
+Analyse an Image
+curl -X POST "http://localhost:8000/analyse" \
+  -F "file=@sample_images/vest_off.png"
+
+Example response
+{
+  "risk": {"overall": 7, "by_rule": {"ppe_vest_color": 7}},
+  "breaches": [
+    {
+      "rule_id": "ppe_vest_color",
+      "severity": "high",
+      "message": "Person not wearing visible high-vis vest",
+      "subjects": [0]
+    }
+  ]
+}
+******************************************************************************
+
+
+
+
+
+
+
