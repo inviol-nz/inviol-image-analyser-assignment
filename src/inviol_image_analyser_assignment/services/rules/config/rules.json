@@ -1,6 +1,6 @@
 {
     "crowding": {
-      "max_safe_people": 5,
+      "max_safe_people": 1,
       "high_risk_extra_people": 5,
       "medium_risk_score_per_person": 0.8,
       "high_risk_score_per_person": 1.2,
