@@ -1,70 +1,86 @@
-import io
+from __future__ import annotations
 
-from fastapi.testclient import TestClient
-from PIL import Image
+from io import BytesIO
 
-from inviol_image_analyser_assignment.main import app
-from inviol_image_analyser_assignment.models.detection import BoundingBox, Detection
-from inviol_image_analyser_assignment.services.rule_engine import RuleEngine
+from fastapi import status
 
 
-class FakeDetector:
-    model_name = "fake-detector"
-    model_version = "test-1.0"
+def test_analyse_returns_result(client, tiny_png_bytes: bytes) -> None:
+    """
+    Basic happy-path test: mocked detector returns some detections,
+    and the endpoint returns a structured AnalysisResult.
+    """
+    files = {
+        "file": ("test.png", BytesIO(tiny_png_bytes), "image/png"),
+    }
 
-    def detect(self, image: Image.Image):
-        width, height = image.size
-        bbox = BoundingBox(
-            x_min=width / 2 - 10,
-            y_min=height / 2 - 10,
-            x_max=width / 2 + 10,
-            y_max=height / 2 + 10,
-        )
-        detection = Detection(
-            id="det-0",
-            label="person",
-            confidence=0.99,
-            bbox=bbox,
-        )
-        return [detection], width, height
+    resp = client.post("/analyse", files=files)
+    assert resp.status_code == status.HTTP_200_OK
 
-
-def create_test_image() -> bytes:
-    img = Image.new("RGB", (640, 480), color=(255, 255, 255))
-    buf = io.BytesIO()
-    img.save(buf, format="JPEG")
-    return buf.getvalue()
-
-
-def test_analyse_returns_result():
-    client = TestClient(app)
-
-    # Override heavy services with test doubles
-    app.state.detector = FakeDetector()
-    app.state.rule_engine = RuleEngine.default()
-    app.state.cache = None
-
-    image_bytes = create_test_image()
-    files = {"file": ("test.jpg", image_bytes, "image/jpeg")}
-
-    response = client.post("/analyse", files=files)
-
-    assert response.status_code == 200
-    data = response.json()
+    data = resp.json()
     assert "risk_rating" in data
+    assert "overall_risk_score" in data
     assert data["model_name"] == "fake-detector"
-    assert len(data["detections"]) == 1
-    assert data["detections"][0]["label"] == "person"
+    assert len(data["detections"]) >= 1
+    assert data["detections"][0]["label"] in {"person", "truck"}
 
 
-def test_invalid_content_type_rejected():
-    client = TestClient(app)
-
-    response = client.post(
+def test_invalid_content_type_rejected(client) -> None:
+    """
+    The endpoint should reject non-image content types with a clear error.
+    """
+    resp = client.post(
         "/analyse",
         files={"file": ("test.txt", b"not an image", "text/plain")},
     )
 
-    assert response.status_code == 400
-    data = response.json()
+    assert resp.status_code == status.HTTP_400_BAD_REQUEST
+
+    data = resp.json()
     assert data["code"] == "invalid_content_type"
+
+
+def test_analyse_returns_proximity_violation(
+    client,
+    tiny_png_bytes: bytes,
+) -> None:
+    """
+    With FakeDetector returning a person and a truck close together,
+    /analyse should report a person_machine_proximity violation.
+    """
+    files = {
+        "file": ("dummy.png", BytesIO(tiny_png_bytes), "image/png"),
+    }
+
+    resp = client.post("/analyse", files=files)
+    assert resp.status_code == status.HTTP_200_OK
+
+    data = resp.json()
+    assert data["risk_rating"] >= 1
+    assert data["overall_risk_score"] > 0.0
+
+    violations = data.get("violations", [])
+    assert any(
+        v.get("rule_id") == "person_machine_proximity" for v in violations
+    ), f"Expected person_machine_proximity violation, got: {violations}"
+
+
+def test_analyse_no_detections_results_in_low_risk(
+    empty_detector_client,
+    tiny_png_bytes: bytes,
+) -> None:
+    """
+    Edge case: when the detector finds no objects, overall risk should be low/zero.
+    """
+    files = {
+        "file": ("dummy.png", BytesIO(tiny_png_bytes), "image/png"),
+    }
+
+    resp = empty_detector_client.post("/analyse", files=files)
+    assert resp.status_code == status.HTTP_200_OK
+
+    data = resp.json()
+    assert data["risk_rating"] == 0
+    assert data["overall_risk_score"] == 0.0
+    assert data["risk_level"] == "low"
+    assert data.get("violations", []) == []
