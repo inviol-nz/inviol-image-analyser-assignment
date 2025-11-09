@@ -1,0 +1,17 @@
+{
+    "crowding": {
+      "max_safe_people": 5,
+      "high_risk_extra_people": 5,
+      "medium_risk_score_per_person": 0.8,
+      "high_risk_score_per_person": 1.2,
+      "weight": 1.0
+    },
+    "person_machine_proximity": {
+      "medium_risk_distance_ratio": 0.25,
+      "high_risk_distance_ratio": 0.15,
+      "medium_risk_score": 2.0,
+      "high_risk_score": 3.0,
+      "weight": 1.5
+    }
+  }
+  

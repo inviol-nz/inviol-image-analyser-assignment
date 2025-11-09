@@ -1,3 +1,5 @@
-from inviol_image_analyser_assignment.app import app
+from __future__ import annotations
+
+from .main import app
 
 __all__ = ["app"]
